@@ -1,4 +1,4 @@
-#include <Arduino.h>
+/* #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_DRV2605.h>
 
@@ -86,4 +86,19 @@ void loop() {
   } else {
     delay(50); // Idle wait
   }
+} */
+
+#include <Arduino.h>
+
+#define LED_BUILTIN 8 // Assuming the onboard LED is connected to GPIO8 on your ESP32-C3 board, check your board's documentation for confirmation. Some boards use other pins, like GPIO2.
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT); // Configure the LED pin as an output.
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH); // Turn the LED on.
+  delay(500); // Wait for 500 milliseconds.
+  digitalWrite(LED_BUILTIN, LOW); // Turn the LED off.
+  delay(500); // Wait for 500 milliseconds.
 }
