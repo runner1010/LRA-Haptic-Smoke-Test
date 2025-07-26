@@ -8,6 +8,9 @@ const uint8_t patterns[3] = {1, 47, 87}; // Example waveform IDs
 const uint8_t defaultPattern = 47;       // Default waveform ID
 const unsigned long timeoutMs = 30000;   // 30 seconds
 
+#define SDA 6 // SDA pin
+#define SCL 7 // SCL pin
+
 void prompt() {
   Serial.println("Choose a haptic pattern:");
   Serial.println("1: Pattern 1");
@@ -18,13 +21,20 @@ void prompt() {
 
 void playPattern(uint8_t waveform) {
   drv.setWaveform(0, waveform); // Set effect
-  drv.setWaveform(1, 0);        // End of sequence
+  drv.setWaveform(1, 0);        // End of sequence 
   drv.go();
 }
 
 void setup() {
   Serial.begin(115200);
-  drv.begin();
+  Wire.begin(SDA, SCL); // Set custom I2C pins
+  delay(10000); // Allow time for the haptics setup to complete
+
+  while (!drv.begin()) {
+    Serial.println("DRV2605 not found! Retrying in 1 second...");
+    delay(1000);
+  }
+
   drv.selectLibrary(1); // LRA
   drv.setMode(DRV2605_MODE_INTTRIG);
   prompt();
