@@ -14,8 +14,9 @@ Pattern type: normal
 Duration: 30s
 
 **** Notes ****
-- Pattern 47 is not in the LRA library and may be weak ad its not optimized for to match their resonant behavior...
+- Chat GPT Pattern 47 is not in the LRA library and may be weak ad its not optimized for to match their resonant behavior...
 - ChatGPT recomends "Match the feel of 47 on LRA --> Try effect 14, 25–28 from Library 6 — they approximate buzz patterns in the ERM libraries"
+- This inference is because TI only lists IDs 1-30 for library 6, even though they state that all 123 waveforms are supported.
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -43,8 +44,11 @@ DRV2605L Internal Libraries
 | 5         | ERM        | Continuation of 4, with enhanced multi-pulse effects                               |
 | 6         | LRA        | Only library specifically optimized for LRA resonance, phase, and drive timing     |
 
-- Not all waveform IDs 1–123 are used in every library (only ~30 are valid in Library 6 which is LRA specific).
-- Libraries are tuned for certain motor types, but you can still use any motor with them.
-- The effect may feel weak / distorted since it’s not matched to the LRA's resonant behavior.
+- All waveform IDs 1–123 are used in every library
+- ChatGPT has made some inference that olny waveforms 1-30 are valid in Library 6 (does not have evidence of this)
+- Waveform libraries are tuned for certain motor types, but you can still use any motor with them.
+- "The effects in each library were created to achieve the same feel, but the output will appear slightly from library to library
+  to account for differences in motor characteristics like startup time, acceleration, and brake time"
+  (Page 14, https://www.ti.com/lit/an/sloa189/sloa189.pdf)
 
 //////////////////////////////////////////////////////////////////////////////////////////
