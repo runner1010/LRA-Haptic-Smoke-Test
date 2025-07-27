@@ -1,104 +1,139 @@
-/* #include <Arduino.h>
+/*
+	LRA Haptic Smoke Test: Method to test the feel of a variety of haptic motors with the alarm sequence
+
+	Change code to use either ERM or LRA motors by commenting out the appropriate lines in setup().
+	
+	Components:
+		- DRV2605 haptic driver
+		- ESP32-C3-DevKitM-1
+		- ERM or LRA haptic motor
+*/
+
+#include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_DRV2605.h>
 
 Adafruit_DRV2605 drv;
 
-const uint8_t patterns[3] = {1, 47, 87}; // Example waveform IDs
-const uint8_t defaultPattern = 47;       // Default waveform ID
-const unsigned long timeoutMs = 30000;   // 30 seconds
+#define LED_PIN 8
+#define SDA_PIN 6
+#define SCL_PIN 7
 
-#define SDA 6 // SDA pin
-#define SCL 7 // SCL pin
+const unsigned long ACTIVE_TIME = 30000;	// Active phase duration in milliseconds
+const unsigned long INACTIVE_TIME = 30000; // Inactive phase duration in milliseconds
+const unsigned long GO_INTERVAL = 1000;    // Interval between GO commands in milliseconds
 
-void prompt() {
-  Serial.println("Choose a haptic pattern:");
-  Serial.println("1: Pattern 1");
-  Serial.println("2: Pattern 2");
-  Serial.println("3: Pattern 3");
-  Serial.println("Enter 1, 2, or 3:");
-}
+const unsigned long ACTIVE_LED_ON_TIME = 250;	// LED ON time during active phase
+const unsigned long ACTIVE_LED_OFF_TIME = 250;	// LED OFF time during active phase
+const unsigned long INACTIVE_LED_ON_TIME = 2000;	// LED ON time during inactive phase
+const unsigned long INACTIVE_LED_OFF_TIME = 2000;	// LED OFF time during inactive phase
 
-void playPattern(uint8_t waveform) {
-  drv.setWaveform(0, waveform); // Set effect
-  drv.setWaveform(1, 0);        // End of sequence 
-  drv.go();
-}
+unsigned long phaseStartTime = 0;	// Start time of the current phase
+unsigned long activeStartTime = 0;	// Start time of the active phase
+unsigned long lastGoTime = 0;	// Last time the GO command was sent
+unsigned long lastLedToggle = 0;	// Last time the LED state was toggled
 
+bool activePhase = true;	// Flag to indicate if we are in the active phase
+bool ledOnState = false;	// Current state of the LED
+
+// Setup function
 void setup() {
   Serial.begin(115200);
-  Wire.begin(SDA, SCL); // Set custom I2C pins
-  delay(10000); // Allow time for the haptics setup to complete
+  delay(5000);	 // Wait for serial monitor to open
 
-  while (!drv.begin()) {
-    Serial.println("DRV2605 not found! Retrying in 1 second...");
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+
+  Wire.begin(SDA_PIN, SCL_PIN);
+
+  while (!drv.begin(&Wire)) {
+    Serial.println("DRV2605 init failed — retrying...");
+    digitalWrite(LED_PIN, LOW);
     delay(1000);
   }
 
-  drv.selectLibrary(1); // LRA
-  drv.setMode(DRV2605_MODE_INTTRIG);
-  prompt();
+  Serial.println("DRV2605 initialized");
+
+
+  // Configure DRV2605 for ERM
+  drv.useERM();	 // Use ERM for this example
+  drv.selectLibrary(1); // Use library 1-5 for ERM
+
+/*   // Configure DRV2605 for LRA
+  drv.useLRA(); // Use LRA for this example
+  drv.selectLibrary(6); // Select library 6 for LRA */
+
+  drv.setMode(DRV2605_MODE_INTTRIG);	// Set to internal trigger mode
+
+  // Alarm waveform setup
+  drv.setWaveform(0, 47);   // Buzz
+  drv.setWaveform(1, 24);   // Tick
+  drv.setWaveform(2, 0);    // End
+
+  // Start the timers
+  phaseStartTime = millis();
+  activeStartTime = millis();
+  lastGoTime = 0;
+  lastLedToggle = millis();
+  digitalWrite(LED_PIN, LOW);
 }
 
+// Main Loop
 void loop() {
-  static unsigned long lastInputTime = millis();
-  static bool runningPattern = false;
-  static uint8_t currentPattern = 0xFF;
+  // Get the current time
+  unsigned long now = millis();
 
-  // Check for user input
-  if (Serial.available()) {
-    char c = Serial.read();
-    if (c >= '1' && c <= '3') {
-      currentPattern = patterns[c - '1'];
-      runningPattern = true;
-      lastInputTime = millis();
-      Serial.print("Running pattern ");
-      Serial.println(c);
-    } else {
-      Serial.println("Invalid input. Please enter 1, 2, or 3.");
-      prompt();
-      lastInputTime = millis();
-      runningPattern = false;
+  // Active phase logic 
+  if (activePhase) {
+    // Trigger vibration every second
+    if (now - lastGoTime >= GO_INTERVAL) {
+      lastGoTime = now;
+      drv.go();
     }
-    // Clear any extra input
-    while (Serial.available()) Serial.read();
-  }
 
-  // Timeout: run default pattern
-  if (!runningPattern && millis() - lastInputTime > timeoutMs) {
-    currentPattern = defaultPattern;
-    runningPattern = true;
-    Serial.println("No input detected. Running default pattern.");
-  }
-
-  // Play the current pattern in a loop
-  if (runningPattern) {
-    playPattern(currentPattern);
-    delay(500); // Adjust for effect duration
-    // Check for interruption
-    if (Serial.available()) {
-      runningPattern = false;
-      prompt();
-      // Clear input buffer
-      while (Serial.available()) Serial.read();
-      lastInputTime = millis();
+    // LED blink: 250ms ON / 250ms OFF
+    unsigned long ledInterval = ledOnState ? ACTIVE_LED_ON_TIME : ACTIVE_LED_OFF_TIME;
+    if (now - lastLedToggle >= ledInterval) {
+      ledOnState = !ledOnState;
+      digitalWrite(LED_PIN, ledOnState ? HIGH : LOW);
+      lastLedToggle = now;
     }
-  } else {
-    delay(50); // Idle wait
+
+    // End active phase
+    if (now - phaseStartTime >= ACTIVE_TIME) {
+      unsigned long actualDuration = now - activeStartTime;
+      Serial.print("Switching to INACTIVE phase — Active phase lasted ");
+      Serial.print(actualDuration);
+      Serial.println(" ms");
+
+      activePhase = false;
+      phaseStartTime = now;
+      lastLedToggle = now;
+      ledOnState = false;
+      digitalWrite(LED_PIN, LOW);
+    }
+
   }
-} */
+  // Inactive phase logic
+  else {
+    // LED blink: 2000ms ON / 2000ms OFF
+    unsigned long ledInterval = ledOnState ? INACTIVE_LED_ON_TIME : INACTIVE_LED_OFF_TIME;
+    if (now - lastLedToggle >= ledInterval) {
+      ledOnState = !ledOnState;
+      digitalWrite(LED_PIN, ledOnState ? HIGH : LOW);
+      lastLedToggle = now;
+    }
 
-#include <Arduino.h>
-
-#define LED_BUILTIN 8 // Assuming the onboard LED is connected to GPIO8 on your ESP32-C3 board, check your board's documentation for confirmation. Some boards use other pins, like GPIO2.
-
-void setup() {
-  pinMode(LED_BUILTIN, OUTPUT); // Configure the LED pin as an output.
-}
-
-void loop() {
-  digitalWrite(LED_BUILTIN, HIGH); // Turn the LED on.
-  delay(500); // Wait for 500 milliseconds.
-  digitalWrite(LED_BUILTIN, LOW); // Turn the LED off.
-  delay(500); // Wait for 500 milliseconds.
+    // End inactive phase
+    if (now - phaseStartTime >= INACTIVE_TIME) {
+      Serial.println("Switching to ACTIVE phase");
+      activePhase = true;
+      phaseStartTime = now;
+      activeStartTime = now;
+      lastGoTime = 0;
+      lastLedToggle = now;
+      ledOnState = false;
+      digitalWrite(LED_PIN, LOW);
+    }
+  }
 }
