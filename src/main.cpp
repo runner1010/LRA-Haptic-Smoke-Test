@@ -7,6 +7,12 @@
 		- DRV2605 haptic driver
 		- ESP32-C3-DevKitM-1
 		- ERM or LRA haptic motor
+
+  To do:
+    - Reduce delay between drv.go (waveform triggers) to more closely represent alarm
+    - Add a second DRV2605 to be able to do side by side comparisons. This will require either:
+      - i2c multiplexer as drv2605L cannot have its address changed
+      - open another serial line to communicate with the second DRV2605L
 */
 
 #include <Arduino.h>
@@ -56,12 +62,12 @@ void setup() {
 
 
   // Configure DRV2605 for ERM
-  drv.useERM();	 // Use ERM for this example
-  drv.selectLibrary(1); // Use library 1-5 for ERM
+/*   drv.useERM();	 // Use ERM for this example
+  drv.selectLibrary(1); // Use library 1-5 for ERM */
 
-/*   // Configure DRV2605 for LRA
+  // Configure DRV2605 for LRA
   drv.useLRA(); // Use LRA for this example
-  drv.selectLibrary(6); // Select library 6 for LRA */
+  drv.selectLibrary(6); // Select library 6 for LRA
 
   drv.setMode(DRV2605_MODE_INTTRIG);	// Set to internal trigger mode
 
