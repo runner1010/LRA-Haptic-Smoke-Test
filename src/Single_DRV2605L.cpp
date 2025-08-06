@@ -1,18 +1,15 @@
 /*
-	LRA Haptic Smoke Test: Method to test the feel of a variety of haptic motors with the alarm sequence
-
-	Change code to use either ERM or LRA motors by commenting out the appropriate lines in setup().
+  Single_DRV2605L.cpp
 	
 	Components:
 		- DRV2605 haptic driver
 		- ESP32-C3-DevKitM-1
-		- ERM or LRA haptic motor
+		- LRA haptic motor
 
-  To do:
-    - Reduce delay between drv.go (waveform triggers) to more closely represent alarm
-    - Add a second DRV2605 to be able to do side by side comparisons. This will require either:
-      - i2c multiplexer as drv2605L cannot have its address changed
-      - open another serial line to communicate with the second DRV2605L
+  This code:
+    - Only uses a single DRV2605 (no MUX)
+    - Runs 30s active and 30s inactive periods
+    - Waveform sequence every TBD ms
 */
 
 #include <Arduino.h>
@@ -59,11 +56,6 @@ void setup() {
   }
 
   Serial.println("DRV2605 initialized");
-
-
-  // Configure DRV2605 for ERM
-/*   drv.useERM();	 // Use ERM for this example
-  drv.selectLibrary(1); // Use library 1-5 for ERM */
 
   // Configure DRV2605 for LRA
   drv.useLRA(); // Use LRA for this example
